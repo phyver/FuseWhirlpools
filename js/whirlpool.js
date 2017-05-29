@@ -194,9 +194,27 @@ function create_svg_content(content) {
     return SVG_FILE;
 }
 
+// update max possible values for rho and sigma parameters
+function update_range() {
+    // 0 < rho <= 180/n
+    // 0 < sigma <= (180-360/n)/2 = 90 - 180/n
+    var n = parseInt($("#n").val());
+    $("#rho").attr("max", 180/n);
+    $("#sigma").attr("max", 90-180/n);
+}
+
+
 $(document).ready(function() {      // <<<1
     $("#no_javascript").remove();
-    $("#update_button").click(draw_CP);
     DRAW = SVG("CP").size(WIDTH, HEIGHT);
+    update_range();
     draw_CP();
+
+    $("#update_button").click(draw_CP);
+    $("#n").bind("input", update_range);
+    $("#n").bind("input", draw_CP);
+    $("#rho").bind("input", draw_CP);
+    $("#sigma").bind("input", draw_CP);
+    $("#h").bind("input", draw_CP);
 });
+

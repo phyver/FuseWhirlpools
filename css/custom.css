@@ -8,12 +8,18 @@ svg {
 form input[type="number"] {
     width: 4em;
 }
-form label {
+label, button {
     margin: 1em;
-    padding: 5px;
+    padding: 0 2px;
 }
 form {
     display: inline-block;
     width: auto;
     margin: 1em;
+}
+legend {
+    padding: 0 1ex;
+}
+fieldset {
+    border: solid 1px;
 }
