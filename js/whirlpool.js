@@ -5,6 +5,9 @@ var ANGLE = 0;          // rotation angle of figure
 var CENTER = [0, 0];    // center (x,y) of figure
 var ZOOM = 1;           // zoom factor
 var MARGIN = 5;         // margin (pixel) around figure
+var STROKE_WIDTH = 0.8;
+var MOUNTAIN_COLOR = "#ff7f00";
+var VALLEY_COLOR = "#777777";
 
 var DRAW = null;        // svg.js SVG element
 var VALLEYS = null;     // SVG group containing the valley folds (borders)
@@ -51,10 +54,6 @@ function whirlpool(n, rho, sigma, h, size) {
     // converting degres to radians
     rho = rho*Math.PI/180;
     sigma = sigma*Math.PI/180;
-
-    // FIXME: check that somewhere
-    // assert 0 < rho <= pi/n;
-    // assert 0 < sigma <= (pi-2*pi/n)/2;
 
     // other important angles
     var beta = rho/2 + Math.PI/n;
@@ -136,7 +135,7 @@ function draw_CP() {
     // clear existing (if any) crease pattern
     DRAW.clear();
 
-    // create the two groups for the two kinds of folds
+    // create the two groups for the two kinds of creases
     MOUNTAINS = DRAW.group();
     VALLEYS = DRAW.group();
 
@@ -157,7 +156,7 @@ function draw_CP() {
         for (j=0; j<h; j++) {
             a = transf(T[j][i]);
             c = transf(T[j+1][i+1]);
-            MOUNTAINS.line(a[0], a[1], c[0], c[1]).stroke({width: 1, color: "red"});
+            MOUNTAINS.line(a[0], a[1], c[0], c[1]).stroke({width: STROKE_WIDTH, color: MOUNTAIN_COLOR});
         }
     }
 
@@ -168,19 +167,18 @@ function draw_CP() {
         for (i=0; i<n; i++) {
             line.push(transf(T[j][i+1]));
         }
-        VALLEYS.polyline(line).fill("none").stroke({width: 1});
+        VALLEYS.polyline(line).fill("none").stroke({width: STROKE_WIDTH, color:VALLEY_COLOR});
     }
     for (i=0; i<=n; i++) {
         line = [transf(T[0][i])];
         for (j=0; j<h; j++) {
             line.push(transf(T[j+1][i]));
         }
-        VALLEYS.polyline(line).fill("none").stroke({width: 1});
+        VALLEYS.polyline(line).fill("none").stroke({width: STROKE_WIDTH, color:VALLEY_COLOR});
     }
 
     // create link to download svg file
     var link = $("#download_svg");
-    link.show();
     link.attr("href", create_svg_content(DRAW.svg()));
 }
 
@@ -199,22 +197,25 @@ function update_range() {
     // 0 < rho <= 180/n
     // 0 < sigma <= (180-360/n)/2 = 90 - 180/n
     var n = parseInt($("#n").val());
-    $("#rho").attr("max", 180/n);
-    $("#sigma").attr("max", 90-180/n);
+    var rho = $("#rho");
+    var sigma = $("#sigma");
+    rho.attr("max", 180/n);
+    rho.val(Math.min(rho.val(), 180/n));
+    sigma.attr("max", 90-180/n);
+    sigma.val(Math.min(sigma.val(), 90-180/n));
 }
 
-
-$(document).ready(function() {      // <<<1
+$(document).ready(function() {
     $("#no_javascript").remove();
     DRAW = SVG("CP").size(WIDTH, HEIGHT);
     update_range();
     draw_CP();
 
-    $("#update_button").click(draw_CP);
     $("#n").bind("input", update_range);
     $("#n").bind("input", draw_CP);
     $("#rho").bind("input", draw_CP);
     $("#sigma").bind("input", draw_CP);
     $("#h").bind("input", draw_CP);
-});
 
+    $("#update_button").click(draw_CP);
+});

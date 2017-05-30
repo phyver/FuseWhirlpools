@@ -8,9 +8,12 @@ svg {
 form input[type="number"] {
     width: 4em;
 }
-label, button {
-    margin: 1em;
+label {
     padding: 0 2px;
+    font-style: italic;
+}
+button {
+    margin: 1em;
 }
 form {
     display: inline-block;
@@ -22,4 +25,8 @@ legend {
 }
 fieldset {
     border: solid 1px;
+}
+ul {
+    text-align: left;
+    font-style: italic;
 }
