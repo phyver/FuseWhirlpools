@@ -1,9 +1,6 @@
 // global variables
 var WIDTH = 600;        // width (pixels) of svg element
 var HEIGHT = 600;       // height (pixels) of svg element
-var ANGLE = 0;          // rotation angle of figure
-var CENTER = [0, 0];    // center (x,y) of figure
-var ZOOM = 1;           // zoom factor
 var MARGIN = 5;         // margin (pixel) around figure
 var STROKE_WIDTH = 0.8;
 var MOUNTAIN_COLOR = "#ff7f00";
@@ -11,6 +8,9 @@ var VALLEY_COLOR = "#777777";
 var PAPER_COLOR = "#444";   // color for paper in outline mode
 var PAPER_OPACITY = 0.05;    // paper opacity in outline mode
 
+var ANGLE = 0;          // rotation angle of figure
+var CENTER = [0, 0];    // center (x,y) of figure
+var ZOOM = 1;           // zoom factor
 
 var DRAW = null;        // svg.js SVG element
 var VALLEYS = null;     // SVG group containing the valley folds (borders)
@@ -204,6 +204,8 @@ function transf(p) {
 function draw_CP() {
     // clear existing (if any) crease pattern
     DRAW.clear();
+    DRAW.height(HEIGHT);
+    DRAW.width(WIDTH);
 
     // create the two groups for the two kinds of creases
     MOUNTAINS = DRAW.group();
@@ -327,7 +329,19 @@ function draw_outline() {
     link.attr("href", create_svg_content(DRAW.svg()));
 }
 
+function update_config() {
+    STROKE_WIDTH = parseFloat($("#stroke_width").val());
+    MOUNTAIN_COLOR = $("#mountain_color").val();
+    VALLEY_COLOR = $("#valley_color").val();
+    MARGIN = parseInt($("#margin").val());
+    WIDTH = parseInt($("#width").val());
+    HEIGHT = parseInt($("#height").val());
+    PAPER_COLOR =  $("#paper_color").val();
+    PAPER_OPACITY =  parseFloat($("#paper_opacity").val());
+}
+
 function draw() {
+    update_config();
     if ($("#outline").is(":checked")) {
             draw_outline();
     } else {

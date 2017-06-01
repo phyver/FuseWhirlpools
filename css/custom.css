@@ -5,12 +5,15 @@ body {
 svg {
     border: solid 1px;
 }
-form input[type="number"] {
-    width: 4em;
+form input[type="number"],
+form input[type="color"]
+{
+    width: 3.5em;
 }
 label {
     padding: 0 2px;
     font-style: italic;
+    margin: 0 1ex;
 }
 button {
     margin: 1em;
@@ -30,3 +33,13 @@ ul {
     text-align: left;
     font-style: italic;
 }
+#config label {
+    display: block;
+}
+table {
+    margin: 0 auto;
+}
+td:first-child {
+    text-align: right;
+}
+
