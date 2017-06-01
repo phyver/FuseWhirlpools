@@ -36,6 +36,21 @@ function rotation(p, alpha, c) {
     return [x,y];
 }
 
+function symmetric(p, a, b) {
+    // compute the coordinates of the symmetric of p across line (a,b)
+    var B, P, S, c;
+    // translate so that a is the origin
+    B = [b[0]-a[0], b[1]-a[1]];
+    P = [p[0]-a[0], p[1]-a[1]];
+
+    // coefficient using dot product
+    c = (P[0]*B[0] + P[1]*B[1]) / (B[0]*B[0] + B[1]*B[1]);
+
+    // projected point, translated back
+    P = [c*B[0] + a[0], c*B[1] + a[1]];
+
+    return [2*P[0] - p[0], 2*P[1] - p[1]];
+}
 
 // compute third point of a triangle from 2 points pa and pb, and the
 // corresponding angles
@@ -49,7 +64,7 @@ function ASA_triangle(pa, pb, alpha, beta) {
 
 // compute all point of the crease pattern for whirlpool with parameters n,
 // rho, sigma and h. (Refer to Tomoko Fuse's book for their meaning...)
-function whirlpool(n, rho, sigma, h, size) {
+function whirlpool_CP(n, rho, sigma, h, size) {
 
     // converting degres to radians
     rho = rho*Math.PI/180;
@@ -93,6 +108,69 @@ function whirlpool(n, rho, sigma, h, size) {
     }
 
     return grid;
+}
+
+function whirlpool_outline(T) {
+    O = [];
+
+    var i, j;
+    var A, B, C, D, a, b, c, d, nc, nd;
+
+    for (j=0; j<h; j++) {
+        if (j === 0) {
+            A = T[j][0];
+            B = T[j+1][0];
+            C = T[j+1][1];
+            D = symmetric(T[j][1], T[j][0], T[j+1][1]);
+            origin = B;
+        } else {
+            angle = Math.atan2(C[1]-B[1], C[0]-B[0]);
+            A = T[j][0];
+            B = T[j+1][0];
+            C = T[j+1][1];
+            D = symmetric(T[j][1], T[j][0], T[j+1][1]);
+
+            Delta = [ origin[0]-A[0], origin[1]-A[1] ];
+
+            A = [A[0]+Delta[0], A[1]+Delta[1]];
+            B = [B[0]+Delta[0], B[1]+Delta[1]];
+            C = [C[0]+Delta[0], C[1]+Delta[1]];
+            D = [D[0]+Delta[0], D[1]+Delta[1]];
+
+            angle = angle - Math.atan2(D[1]-A[1], D[0]-A[0]);
+            if (angle < 0) { angle = angle + 2*Math.PI; }
+            B = rotation(B, angle, A);
+            C = rotation(C, angle, A);
+            D = rotation(D, angle, A);
+            origin = B;
+        }
+        a = A;
+        b = B;
+        c = C;
+        d = D;
+
+        for (i=0; i<n; i++) {
+
+            MOUNTAINS.polyline([a, b, c].map(transf)).fill("#bbb").opacity(0.2).stroke({width: 0, color: "black"});
+            MOUNTAINS.polyline([a, d, c].map(transf)).fill("#bbb").opacity(0.2).stroke({width: 0, color: "black"});
+
+            na = [A[0]+d[0]-A[0], A[1]+d[1]-A[1]];
+            nb = [B[0]+d[0]-A[0], B[1]+d[1]-A[1]];
+            nc = [C[0]+d[0]-A[0], C[1]+d[1]-A[1]];
+            nd = [D[0]+d[0]-A[0], D[1]+d[1]-A[1]];
+
+            alpha = Math.atan2(c[1]-d[1], c[0]-d[0]) - Math.atan2(nb[1]-na[1], nb[0]-na[0]);
+            if (alpha < 0) {
+                alpha = alpha + 2*Math.PI;
+            }
+
+            a = d;
+            b = c;
+            c = rotation(nc, alpha, d);
+            d = rotation(nd, alpha, d);
+        }
+    }
+    return O;
 }
 
 // compute bounding box of a grid of points and update the global variable
@@ -145,7 +223,7 @@ function draw_CP() {
     var h =  parseInt($('#h').val());
 
     // compute grid of points
-    var T = whirlpool(n, rho, sigma, h, 100);
+    var T = whirlpool_CP(n, rho, sigma, h, 100);
     // compute CENTER and ZOOM factor
     center(T);
 
@@ -154,33 +232,117 @@ function draw_CP() {
     var a, b, c, d;
     for (i=0; i<n; i++) {
         for (j=0; j<h; j++) {
-            a = transf(T[j][i]);
-            c = transf(T[j+1][i+1]);
-            MOUNTAINS.line(a[0], a[1], c[0], c[1]).stroke({width: STROKE_WIDTH, color: MOUNTAIN_COLOR});
+            a = T[j][i];
+            c = T[j+1][i+1];
+            MOUNTAINS.polyline([a, c].map(transf)).stroke({width: STROKE_WIDTH, color: MOUNTAIN_COLOR});
         }
     }
 
     // draw all the grid folds
     var line;
     for (j=0; j<=h; j++) {
-        line = [transf(T[j][0])];
+        line = [T[j][0]];
         for (i=0; i<n; i++) {
-            line.push(transf(T[j][i+1]));
+            line.push(T[j][i+1]);
         }
-        VALLEYS.polyline(line).fill("none").stroke({width: STROKE_WIDTH, color:VALLEY_COLOR});
+        VALLEYS.polyline(line.map(transf)).fill("none").stroke({width: STROKE_WIDTH, color:VALLEY_COLOR});
     }
     for (i=0; i<=n; i++) {
-        line = [transf(T[0][i])];
+        line = [T[0][i]];
         for (j=0; j<h; j++) {
-            line.push(transf(T[j+1][i]));
+            line.push(T[j+1][i]);
         }
-        VALLEYS.polyline(line).fill("none").stroke({width: STROKE_WIDTH, color:VALLEY_COLOR});
+        VALLEYS.polyline(line.map(transf)).fill("none").stroke({width: STROKE_WIDTH, color:VALLEY_COLOR});
     }
 
     // create link to download svg file
     var link = $("#download_svg");
     link.attr("href", create_svg_content(DRAW.svg()));
 }
+
+function draw_outline() {
+    // clear existing (if any) outline
+    DRAW.clear();
+
+    // create the two groups for the two kinds of creases
+    MOUNTAINS = DRAW.group();
+
+    var n =  parseInt($('#n').val());
+    var rho =  parseFloat($('#rho').val());
+    var sigma =  parseFloat($('#sigma').val());
+    var h =  parseInt($('#h').val());
+
+    // compute grid of points
+    var T = whirlpool_CP(n, rho, sigma, h, 100);
+
+    var i, j;
+    var A, B, C, D, a, b, c, d, nc, nd;
+
+    for (j=0; j<h; j++) {
+        if (j === 0) {
+            A = T[j][0];
+            B = T[j+1][0];
+            C = T[j+1][1];
+            D = symmetric(T[j][1], T[j][0], T[j+1][1]);
+            origin = B;
+        } else {
+            angle = Math.atan2(C[1]-B[1], C[0]-B[0]);
+            A = T[j][0];
+            B = T[j+1][0];
+            C = T[j+1][1];
+            D = symmetric(T[j][1], T[j][0], T[j+1][1]);
+
+            Delta = [ origin[0]-A[0], origin[1]-A[1] ];
+
+            A = [A[0]+Delta[0], A[1]+Delta[1]];
+            B = [B[0]+Delta[0], B[1]+Delta[1]];
+            C = [C[0]+Delta[0], C[1]+Delta[1]];
+            D = [D[0]+Delta[0], D[1]+Delta[1]];
+
+            angle = angle - Math.atan2(D[1]-A[1], D[0]-A[0]);
+            if (angle < 0) { angle = angle + 2*Math.PI; }
+            B = rotation(B, angle, A);
+            C = rotation(C, angle, A);
+            D = rotation(D, angle, A);
+            origin = B;
+        }
+        a = A;
+        b = B;
+        c = C;
+        d = D;
+
+        for (i=0; i<n; i++) {
+
+            MOUNTAINS.polyline([a, b, c].map(transf)).fill("#bbb").opacity(0.2).stroke({width: 0, color: "black"});
+            MOUNTAINS.polyline([a, d, c].map(transf)).fill("#bbb").opacity(0.2).stroke({width: 0, color: "black"});
+
+            na = [A[0]+d[0]-A[0], A[1]+d[1]-A[1]];
+            nb = [B[0]+d[0]-A[0], B[1]+d[1]-A[1]];
+            nc = [C[0]+d[0]-A[0], C[1]+d[1]-A[1]];
+            nd = [D[0]+d[0]-A[0], D[1]+d[1]-A[1]];
+
+            alpha = Math.atan2(c[1]-d[1], c[0]-d[0]) - Math.atan2(nb[1]-na[1], nb[0]-na[0]);
+            if (alpha < 0) {
+                alpha = alpha + 2*Math.PI;
+            }
+
+            a = d;
+            b = c;
+            c = rotation(nc, alpha, d);
+            d = rotation(nd, alpha, d);
+        }
+    }
+}
+
+
+function draw() {
+    if ($("#outline").is(":checked")) {
+        draw_outline();
+    } else {
+        draw_CP();
+    }
+}
+
 
 // create a virtual file to download
 function create_svg_content(content) {
@@ -209,13 +371,14 @@ $(document).ready(function() {
     $("#no_javascript").remove();
     DRAW = SVG("CP").size(WIDTH, HEIGHT);
     update_range();
-    draw_CP();
+    draw();
 
     $("#n").bind("input", update_range);
-    $("#n").bind("input", draw_CP);
-    $("#rho").bind("input", draw_CP);
-    $("#sigma").bind("input", draw_CP);
-    $("#h").bind("input", draw_CP);
+    $("#n").bind("input", draw);
+    $("#rho").bind("input", draw);
+    $("#sigma").bind("input", draw);
+    $("#h").bind("input", draw);
+    $("#outline").bind("change", draw);
 
-    $("#update_button").click(draw_CP);
+    $("#update_button").click(draw);
 });
