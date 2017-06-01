@@ -8,10 +8,15 @@ var MARGIN = 5;         // margin (pixel) around figure
 var STROKE_WIDTH = 0.8;
 var MOUNTAIN_COLOR = "#ff7f00";
 var VALLEY_COLOR = "#777777";
+var PAPER_COLOR = "#444";   // color for paper in outline mode
+var PAPER_OPACITY = 0.05;    // paper opacity in outline mode
+
 
 var DRAW = null;        // svg.js SVG element
 var VALLEYS = null;     // SVG group containing the valley folds (borders)
 var MOUNTAINS = null;   // SVG group containing the mountain folds (diagonals)
+var OUTLINE = null;     // SVG group containing the outline
+
 
 var SVG_FILE = null;
 
@@ -66,10 +71,6 @@ function ASA_triangle(pa, pb, alpha, beta) {
 // rho, sigma and h. (Refer to Tomoko Fuse's book for their meaning...)
 function whirlpool_CP(n, rho, sigma, h, size) {
 
-    // converting degres to radians
-    rho = rho*Math.PI/180;
-    sigma = sigma*Math.PI/180;
-
     // other important angles
     var beta = rho/2 + Math.PI/n;
     var gamma = Math.PI - sigma - beta;
@@ -110,65 +111,56 @@ function whirlpool_CP(n, rho, sigma, h, size) {
     return grid;
 }
 
-function whirlpool_outline(T) {
-    O = [];
+function whirlpool_outline(n, rho, sigma, h, size) {
+    var T = whirlpool_CP(n, rho, sigma, h, size);
+    var O = [];
 
     var i, j;
-    var A, B, C, D, a, b, c, d, nc, nd;
+    var line;
 
-    for (j=0; j<h; j++) {
-        if (j === 0) {
-            A = T[j][0];
-            B = T[j+1][0];
-            C = T[j+1][1];
-            D = symmetric(T[j][1], T[j][0], T[j+1][1]);
-            origin = B;
-        } else {
-            angle = Math.atan2(C[1]-B[1], C[0]-B[0]);
-            A = T[j][0];
-            B = T[j+1][0];
-            C = T[j+1][1];
-            D = symmetric(T[j][1], T[j][0], T[j+1][1]);
+    var a, b, c, d, x, na, nb, nc, nd;
 
-            Delta = [ origin[0]-A[0], origin[1]-A[1] ];
+    // initial points
+    a = T[0][0];
+    b = T[1][0];
+    c = T[1][1];
+    d = symmetric(T[0][1], a, c);
 
-            A = [A[0]+Delta[0], A[1]+Delta[1]];
-            B = [B[0]+Delta[0], B[1]+Delta[1]];
-            C = [C[0]+Delta[0], C[1]+Delta[1]];
-            D = [D[0]+Delta[0], D[1]+Delta[1]];
-
-            angle = angle - Math.atan2(D[1]-A[1], D[0]-A[0]);
-            if (angle < 0) { angle = angle + 2*Math.PI; }
-            B = rotation(B, angle, A);
-            C = rotation(C, angle, A);
-            D = rotation(D, angle, A);
-            origin = B;
-        }
-        a = A;
-        b = B;
-        c = C;
-        d = D;
-
+    for (j=0; j<=h; j++) {
+        line = [a];
         for (i=0; i<n; i++) {
-
-            MOUNTAINS.polyline([a, b, c].map(transf)).fill("#bbb").opacity(0.2).stroke({width: 0, color: "black"});
-            MOUNTAINS.polyline([a, d, c].map(transf)).fill("#bbb").opacity(0.2).stroke({width: 0, color: "black"});
-
-            na = [A[0]+d[0]-A[0], A[1]+d[1]-A[1]];
-            nb = [B[0]+d[0]-A[0], B[1]+d[1]-A[1]];
-            nc = [C[0]+d[0]-A[0], C[1]+d[1]-A[1]];
-            nd = [D[0]+d[0]-A[0], D[1]+d[1]-A[1]];
-
-            alpha = Math.atan2(c[1]-d[1], c[0]-d[0]) - Math.atan2(nb[1]-na[1], nb[0]-na[0]);
-            if (alpha < 0) {
-                alpha = alpha + 2*Math.PI;
-            }
-
-            a = d;
-            b = c;
-            c = rotation(nc, alpha, d);
-            d = rotation(nd, alpha, d);
+            line.push(d);
+            x = d;
+            d = rotation(a, (n-2)*Math.PI/n,d);
+            a = x;
         }
+        O.push(line);
+
+        // compute the next points (except when at last row)
+        if (j === h) break;
+
+        // new points
+        na = T[j][0];
+        nb = T[j+1][0];
+        nc = T[j+1][1];
+        nd = symmetric(T[j][1], na, nc);
+
+        // translate new points so that new point A lies on top on old point B
+        delta = [b[0]-na[0], b[1]-na[1]];
+        na = [na[0]+delta[0], na[1]+delta[1]];
+        nb = [nb[0]+delta[0], nb[1]+delta[1]];
+        nc = [nc[0]+delta[0], nc[1]+delta[1]];
+        nd = [nd[0]+delta[0], nd[1]+delta[1]];
+
+        // rotate new points around new A (== old B) so that new point D lies
+        // on top of old point C
+        angle = Math.atan2(c[1]-b[1], c[0]-b[0]) - Math.atan2(nd[1]-na[1], nd[0]-na[0]);
+        na = rotation(na, angle, na);
+        nb = rotation(nb, angle, na);
+        nc = rotation(nc, angle, na);
+        nd = rotation(nd, angle, na);
+
+        a = na; b = nb; c = nc; d = nd;
     }
     return O;
 }
@@ -222,6 +214,10 @@ function draw_CP() {
     var sigma =  parseFloat($('#sigma').val());
     var h =  parseInt($('#h').val());
 
+    // converting degres to radians
+    rho = rho*Math.PI/180;
+    sigma = sigma*Math.PI/180;
+
     // compute grid of points
     var T = whirlpool_CP(n, rho, sigma, h, 100);
     // compute CENTER and ZOOM factor
@@ -239,20 +235,22 @@ function draw_CP() {
     }
 
     // draw all the grid folds
-    var line;
+    var line, w;
     for (j=0; j<=h; j++) {
         line = [T[j][0]];
         for (i=0; i<n; i++) {
             line.push(T[j][i+1]);
         }
-        VALLEYS.polyline(line.map(transf)).fill("none").stroke({width: STROKE_WIDTH, color:VALLEY_COLOR});
+        w = j===0 || j===h ? STROKE_WIDTH*2 : STROKE_WIDTH;
+        VALLEYS.polyline(line.map(transf)).fill("none").stroke({width: w, color:VALLEY_COLOR});
     }
     for (i=0; i<=n; i++) {
         line = [T[0][i]];
         for (j=0; j<h; j++) {
             line.push(T[j+1][i]);
         }
-        VALLEYS.polyline(line.map(transf)).fill("none").stroke({width: STROKE_WIDTH, color:VALLEY_COLOR});
+        w = i===0 || i===n ? STROKE_WIDTH*2 : STROKE_WIDTH;
+        VALLEYS.polyline(line.map(transf)).fill("none").stroke({width: w, color:VALLEY_COLOR});
     }
 
     // create link to download svg file
@@ -261,83 +259,77 @@ function draw_CP() {
 }
 
 function draw_outline() {
-    // clear existing (if any) outline
+    // clear existing (if any) crease pattern
     DRAW.clear();
 
     // create the two groups for the two kinds of creases
-    MOUNTAINS = DRAW.group();
+    OUTLINE = DRAW.group();
 
     var n =  parseInt($('#n').val());
     var rho =  parseFloat($('#rho').val());
     var sigma =  parseFloat($('#sigma').val());
     var h =  parseInt($('#h').val());
 
-    // compute grid of points
-    var T = whirlpool_CP(n, rho, sigma, h, 100);
+    // converting degres to radians
+    rho = rho*Math.PI/180;
+    sigma = sigma*Math.PI/180;
+
+
+    // compute outline
+    var O = whirlpool_outline(n, rho, sigma, h, 100);
+
+    // compute CENTER and ZOOM factor
+    center(O);
 
     var i, j;
-    var A, B, C, D, a, b, c, d, nc, nd;
+    var a, b, c, d;
 
-    for (j=0; j<h; j++) {
-        if (j === 0) {
-            A = T[j][0];
-            B = T[j+1][0];
-            C = T[j+1][1];
-            D = symmetric(T[j][1], T[j][0], T[j+1][1]);
-            origin = B;
-        } else {
-            angle = Math.atan2(C[1]-B[1], C[0]-B[0]);
-            A = T[j][0];
-            B = T[j+1][0];
-            C = T[j+1][1];
-            D = symmetric(T[j][1], T[j][0], T[j+1][1]);
-
-            Delta = [ origin[0]-A[0], origin[1]-A[1] ];
-
-            A = [A[0]+Delta[0], A[1]+Delta[1]];
-            B = [B[0]+Delta[0], B[1]+Delta[1]];
-            C = [C[0]+Delta[0], C[1]+Delta[1]];
-            D = [D[0]+Delta[0], D[1]+Delta[1]];
-
-            angle = angle - Math.atan2(D[1]-A[1], D[0]-A[0]);
-            if (angle < 0) { angle = angle + 2*Math.PI; }
-            B = rotation(B, angle, A);
-            C = rotation(C, angle, A);
-            D = rotation(D, angle, A);
-            origin = B;
-        }
-        a = A;
-        b = B;
-        c = C;
-        d = D;
-
+    // draw all the grid folds
+    var line, w;
+    for (j=0; j<=h; j++) {
+        line = [O[j][0]];
         for (i=0; i<n; i++) {
-
-            MOUNTAINS.polyline([a, b, c].map(transf)).fill("#bbb").opacity(0.2).stroke({width: 0, color: "black"});
-            MOUNTAINS.polyline([a, d, c].map(transf)).fill("#bbb").opacity(0.2).stroke({width: 0, color: "black"});
-
-            na = [A[0]+d[0]-A[0], A[1]+d[1]-A[1]];
-            nb = [B[0]+d[0]-A[0], B[1]+d[1]-A[1]];
-            nc = [C[0]+d[0]-A[0], C[1]+d[1]-A[1]];
-            nd = [D[0]+d[0]-A[0], D[1]+d[1]-A[1]];
-
-            alpha = Math.atan2(c[1]-d[1], c[0]-d[0]) - Math.atan2(nb[1]-na[1], nb[0]-na[0]);
-            if (alpha < 0) {
-                alpha = alpha + 2*Math.PI;
-            }
-
-            a = d;
-            b = c;
-            c = rotation(nc, alpha, d);
-            d = rotation(nd, alpha, d);
+            line.push(O[j][i+1]);
+        }
+        w = j===0 || j===h ? STROKE_WIDTH*2 : STROKE_WIDTH/2;
+        OUTLINE.polyline(line.map(transf)).fill("none").stroke({width: w, color:VALLEY_COLOR});
+    }
+    for (i=0; i<=n; i++) {
+        line = [O[0][i]];
+        for (j=0; j<h; j++) {
+            line.push(O[j+1][i]);
+        }
+        w = i===0 || i===n ? STROKE_WIDTH*2 : STROKE_WIDTH/2;
+        OUTLINE.polyline(line.map(transf)).fill("none").stroke({width: w, color:VALLEY_COLOR});
+    }
+    for (i=0; i<n; i++) {
+        for (j=0; j<h; j++) {
+            a = O[j][i];
+            c = O[j+1][i+1];
+            OUTLINE.polygon([a, c].map(transf)).fill("none").stroke({width: STROKE_WIDTH/2, color: VALLEY_COLOR});
         }
     }
-}
 
+    // draw all the triangles
+    for (i=0; i<n; i++) {
+        for (j=0; j<h; j++) {
+            a = O[j][i];
+            b = O[j][i+1];
+            c = O[j+1][i+1];
+            d = O[j+1][i];
+            OUTLINE.polygon([a, b, c].map(transf)).fill(PAPER_COLOR).opacity(PAPER_OPACITY).stroke({width: 0});
+            OUTLINE.polygon([a, d, c].map(transf)).fill(PAPER_COLOR).opacity(PAPER_OPACITY).stroke({width: 0});
+        }
+    }
+
+    // create link to download svg file
+    var link = $("#download_svg");
+    link.attr("href", create_svg_content(DRAW.svg()));
+}
 
 function draw() {
     if ($("#outline").is(":checked")) {
-        draw_outline();
+            draw_outline();
     } else {
         draw_CP();
     }
