@@ -111,6 +111,8 @@ function whirlpool_CP(n, rho, sigma, h, size) {
     return grid;
 }
 
+// NOTE: I could also compute the outline by taking the first ABCD shape and
+// transforming it directly by translation, rotation, homothety
 function whirlpool_outline(n, rho, sigma, h, size) {
     var T = whirlpool_CP(n, rho, sigma, h, size);
     var O = [];
@@ -118,7 +120,7 @@ function whirlpool_outline(n, rho, sigma, h, size) {
     var i, j;
     var line;
 
-    var a, b, c, d, x, na, nb, nc, nd;
+    var a, b, c, d, x, na, nb, nc, nd, delta;
 
     // initial points
     a = T[0][0];
@@ -137,30 +139,41 @@ function whirlpool_outline(n, rho, sigma, h, size) {
         O.push(line);
 
         // compute the next points (except when at last row)
-        if (j === h) break;
+        if (j === h) {
+            // don't do anything for last row
+            break;
+        } else if (j === h-1) {
+            // for next to last, we cannot look for the next row in T (there
+            // is none): we just take the c and d point from the current row
+            a = b; d = c;
+        } else {
+            // otherwise, we take the next shape in T, and translate/rotate it
+            // to align with the current shape...
 
-        // new points
-        na = T[j][0];
-        nb = T[j+1][0];
-        nc = T[j+1][1];
-        nd = symmetric(T[j][1], na, nc);
+            // new points
+            na = T[j+1][0];
+            nb = T[j+2][0];
+            nc = T[j+2][1];
+            nd = symmetric(T[j+1][1], na, nc);
 
-        // translate new points so that new point A lies on top on old point B
-        delta = [b[0]-na[0], b[1]-na[1]];
-        na = [na[0]+delta[0], na[1]+delta[1]];
-        nb = [nb[0]+delta[0], nb[1]+delta[1]];
-        nc = [nc[0]+delta[0], nc[1]+delta[1]];
-        nd = [nd[0]+delta[0], nd[1]+delta[1]];
+            // translate new points so that new point A lies on top on old point B
+            delta = [b[0]-na[0], b[1]-na[1]];
+            na = [na[0]+delta[0], na[1]+delta[1]];
+            nb = [nb[0]+delta[0], nb[1]+delta[1]];
+            nc = [nc[0]+delta[0], nc[1]+delta[1]];
+            nd = [nd[0]+delta[0], nd[1]+delta[1]];
 
-        // rotate new points around new A (== old B) so that new point D lies
-        // on top of old point C
-        angle = Math.atan2(c[1]-b[1], c[0]-b[0]) - Math.atan2(nd[1]-na[1], nd[0]-na[0]);
-        na = rotation(na, angle, na);
-        nb = rotation(nb, angle, na);
-        nc = rotation(nc, angle, na);
-        nd = rotation(nd, angle, na);
+            // rotate new points around new A (== old B) so that new point D lies
+            // on top of old point C
+            angle = Math.atan2(c[1]-b[1], c[0]-b[0]) - Math.atan2(nd[1]-na[1], nd[0]-na[0]);
+            if (angle < 0) angle += 2 * Math.PI;
+            na = rotation(na, angle, na);
+            nb = rotation(nb, angle, na);
+            nc = rotation(nc, angle, na);
+            nd = rotation(nd, angle, na);
 
-        a = na; b = nb; c = nc; d = nd;
+            a = na; b = nb; c = nc; d = nd;
+        }
     }
     return O;
 }
