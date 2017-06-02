@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Whirlpool crease patterns</title>
+
+   <link rel="stylesheet" href="./css/normalize.css">
+   <link rel="stylesheet" href="./css/custom.css">
+
+   <script src="./js/jquery-3.2.1.slim.min.js"></script>
+   <script src="./js/svg.min.js"></script>
+   <script src="./js/whirlpool.js"></script>
+
+</head>
+<body>
+
+    <div id="no_javascript">
+        This page is useless without Javascript!
+    </div>
+
+    <h1>Tomoko Fuse's Whirlpool Crease Patterns</h1>
+    <h2>"Spiral Origami Art Design"</h2>
+
+    <div id="CP">
+        <!-- SVG element inserted here... -->
+    </div>
+    <div>
+        <a download="whirlpool.svg" id="download_svg">download SVG file</a>
+    </div>
+
+    <form>
+        <fieldset id="parameters">
+            <legend>  whirlpool parameters  </legend>
+
+            <label for="n">n
+                <input id="n" type="number" step="1" required min="3" max="50" value="5">
+            </label>
+
+            <label for="rho">&rho;
+                <input id="rho" type="number" step="any" required min="1" max="90" value="10">
+            </label>
+
+            <label for="sigma">&sigma;
+                <input id="sigma" type="number" step="any" required min="1" max="90" value="20">
+            </label>
+
+            <label for="h">h
+                <input id="h" type="number" step="1" required min="1" max="50" value="12">
+            </label>
+
+            <label for="outline">show outline
+                <input id="outline" type="checkbox">
+            </label>
+
+            <button type="button" id="update_button">Update</button>
+
+        </fieldset>
+
+        <ul>
+            <li>n: number of corners of polygon (n &ge; 3)</li>
+            <li>&rho;: angle of rotation (0 &lt; &rho; &le; 180/n)</li>
+            <li>&sigma;: angle of spirality (0 &lt; &sigma; &le; 90 - 180/n)</li>
+            <li>h: number of layers (h &ge; 1)</li>
+        </ul>
+
+        <fieldset id="config">
+            <legend>  preferences  </legend>
+
+            <table>
+                <tr>
+                    <td>
+                        <label for="valley_color">color for valley folds</label>
+                    </td><td>
+                        <input id="valley_color" type="color" value="#777777">
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <label for="mountain_color">color for mountain folds</label>
+                    </td><td>
+                        <input id="mountain_color" type="color" value="#ff7f00">
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <label for="paper_color">paper color (for outline)</label>
+                    </td><td>
+                        <input id="paper_color" type="color" value="#444444">
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <label for="paper_opacity">paper opacity (for outline)</label>
+                    </td><td>
+                        <input id="paper_opacity" type="number" step="0.01" required min="0" max="1" value="0.05">
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <label for="stroke_width">stroke width</label>
+                    </td><td>
+                        <input id="stroke_width" type="number" step="0.1" required min="0.1" max="10" value="0.8">
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <label for="width">width</label>
+                    </td><td>
+                        <input id="width" type="number" step="10" required min="100" value="600">
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <label for="height">height</label>
+                    </td><td>
+                        <input id="height" type="number" step="10" required min="100" value="600">
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>
+                        <label for="margin">margin around drawing</label>
+                    </td><td>
+                        <input id="margin" type="number" required min="0" max=50 value="5">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <label for="margin">margin around drawing</label>
+                    </td><td>
+                        <input id="margin" type="number" required min="0" max=50 value="5">
+                    </td>
+                </tr>
+            </table>
+
+        </fieldset>
+    </form>
+
+    <div id="footer">
+        <a href="mailto:pierre.hyvernat@free.fr?subject=whirlpool%20js">contact</a>
+    </div>
+
+</body>
+</html>
+
