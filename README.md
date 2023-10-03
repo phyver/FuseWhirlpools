@@ -3,7 +3,7 @@
 A small utility to generate *whirlpool* crease patterns as described in Tomoko
 Fuse's fantastic book "Spiral Origami Art Design".
 
-https://www.lama.univ-savoie.fr/pagesmembres/hyvernat/Misc/Whirlpools/whirlpools.html
+https://pierre-hyvernat.apps.math.cnrs.fr/data/Misc/whirlpool/whirlpools.html
 
 
 ### How to use
